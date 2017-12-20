@@ -21,31 +21,30 @@ export default (Vue = {}, { child, useSandboxMethods, exposePurpose } = {}) => {
       const perimeters = getPerimeters(options.perimeters || rootOptions.perimeters);
       const governess = getGoverness(options.governess || rootOptions.governess);
       const sandboxChild = () => getChild(child, { store });
-      const sandboxGetter = () => createSandbox(sandboxChild(), {
+
+      const sandbox = createSandbox(sandboxChild(), {
         governess,
         perimeters
       });
 
-      const sandbox = sandboxGetter();
-
       options.computed = options.computed || {};
       options.methods = options.methods || {};
 
-      options.computed.$sandbox = sandboxGetter;
+      options.computed.$sandbox = () => sandbox;
 
       // Add helper methods from sandbox
       (useSandboxMethods || []).forEach((methodName) => {
         const $methodName = `$${methodName}`;
         const sandboxMethod = sandbox[methodName];
         options.computed[$methodName] = typeof sandboxMethod === 'function' ?
-          () => sandboxMethod.bind(sandboxGetter()) : () => sandboxMethod;
+          () => sandboxMethod.bind(sandbox) : () => sandboxMethod;
       });
 
       // Add purpose
       if (exposePurpose) {
         sandbox.getPerimeters().forEach((perimeter) => {
           const purpose = perimeter.getPurpose();
-          options.computed[`$${purpose}`] = () => sandboxGetter()[purpose];
+          options.computed[`$${purpose}`] = () => sandbox[purpose];
         });
       }
     }
